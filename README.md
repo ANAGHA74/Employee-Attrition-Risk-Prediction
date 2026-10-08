@@ -1,290 +1,81 @@
-# Kafka Data Ingestion - Employee Attrition Risk Prediction
+# Employee Attrition Risk Prediction
 
-This is the Kafka data ingestion component of the Employee Attrition Risk Prediction Big Data pipeline. It handles loading the HR dataset, streaming it through Kafka, and preparing it for downstream HDFS storage.
+A Big Data pipeline that estimates how likely each employee is to leave a company, so HR can step in **before** someone resigns.
 
-## Architecture
+## The problem
+
+HR teams usually find out an employee is leaving only when the resignation letter arrives, which is too late to do anything about it. This project scores every employee's attrition risk early. Anyone with a score of **0.6 or higher** is flagged for HR review.
+
+## How it works
 
 ```
-┌─────────────────┐      ┌──────────────┐      ┌─────────────┐      ┌──────────┐
-│   IBM HR CSV    │─────▶│   Producer   │─────▶│ Kafka Topic │─────▶│ Consumer │
-│ (raw data)      │      │  (send data) │      │employee-data│      │(receive) │
-└─────────────────┘      └──────────────┘      └─────────────┘      └────┬─────┘
-                                                                               │
-                                                                               ▼
-                                                                        ┌──────────┐
-                                                                        │   HDFS   │
-                                                                        │ (Person 2)│
-                                                                        └──────────┘
+Employee data (CSV) -> Kafka -> HDFS -> ML model -> HR dashboard
 ```
 
-## Setup Instructions (PowerShell)
+1. **Kafka** streams employee records one by one, like a live feed.
+2. **HDFS** (Hadoop) stores the incoming data.
+3. A **classification model** gives each employee a risk score between 0 and 1.
+4. An **HR dashboard** shows who is at risk, and why.
 
-### 1. Create Project Structure
+**Dataset:** [IBM HR Analytics Employee Attrition & Performance](https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset) (1470 employees, fictional data).
+
+**Note:** the dataset records whether an employee eventually left, not exactly when, so the score is an attrition-likelihood estimate interpreted as near-term risk, not an exact 6-month prediction.
+
+## Tech stack
+
+Python, Apache Kafka, Hadoop HDFS, scikit-learn, Streamlit, Docker
+
+## Project status
+
+| Component | Status |
+|---|---|
+| Kafka data ingestion (`kafka_pipeline/`) | Done and verified (1470 of 1470 messages) |
+| HDFS storage | In progress |
+| ML risk model | In progress |
+| HR dashboard | In progress |
+
+## Try the Kafka part
+
+**You need:** Docker Desktop (running), Python 3.11+, Git.
 
 ```powershell
-mkdir data\raw, data\processed, kafka_pipeline
-```
+git clone https://github.com/ANAGHA74/Employee-Attrition-Risk-Prediction.git
+cd Employee-Attrition-Risk-Prediction
 
-### 2. Place Dataset
-
-Copy `WA_Fn-UseC_-HR-Employee-Attrition.csv` to `data\raw\` folder.
-
-### 3. Start Kafka with Docker
-
-```powershell
 docker compose up -d
-```
-
-Verify containers are running:
-```powershell
-docker ps
-```
-
-### 4. Create Kafka Topic
-
-```powershell
 docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --create --topic employee-data --bootstrap-server localhost:9092 --partitions 3 --replication-factor 1
-```
 
-### 5. Set Up Python Environment
-
-```powershell
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 6. (Optional) Configure Environment Variables
-
-Copy `.env.example` to `.env` and modify if needed:
-```powershell
-copy .env.example .env
-```
-
-The pipeline works without `.env` file (uses defaults). See `.env.example` for available settings.
-
-### 7. Preprocess Data
+Open two terminals (with the venv activated in both):
 
 ```powershell
-python preprocess.py
-```
-
-This creates `data\processed\employees_clean.csv` with constant columns removed.
-
-## Usage
-
-### Run Producer (Send Data to Kafka)
-
-```powershell
-# From project root
-python kafka_pipeline\producer.py
-
-# With custom delay between messages (seconds)
-python kafka_pipeline\producer.py --delay 0.5
-
-# Limit to first 100 records (for testing)
-python kafka_pipeline\producer.py --limit 100
-```
-
-### Run Consumer (Receive Data from Kafka)
-
-```powershell
-# From project root
+# Terminal 1: receives the data
 python kafka_pipeline\consumer.py
+
+# Terminal 2: sends the data (use --limit 100 for a quick test)
+python kafka_pipeline\producer.py --delay 0.02
 ```
 
-Press `Ctrl+C` to stop gracefully. The consumer buffers records in batches of 100 and calls `flush_batch()` for HDFS storage (Person 2's responsibility).
+Then check the result:
+- `python verify.py` prints **PASS** if all 1470 employees reached Kafka.
+- Or open http://localhost:8080 (Kafka UI) -> Topics -> `employee-data`.
 
-**To replay from the beginning** (use a new consumer group):
-```powershell
-$env:GROUP_ID="new-consumer-group"
-python kafka_pipeline\consumer.py
-```
+If the consumer shows nothing on a second run, start it with a new group name: `$env:GROUP_ID="new-name"`.
 
-### Verify Message Count
-
-```powershell
-python verify.py
-```
-
-This reads the CSV row count and compares it to the Kafka topic message count. Prints PASS or FAIL.
-
-## JSON Message Schema
-
-Each message sent to Kafka is a JSON object with the following fields:
-
-```json
-{
-  "Age": 41,
-  "Attrition": "Yes",
-  "BusinessTravel": "Travel_Rarely",
-  "DailyRate": 1102,
-  "Department": "Sales",
-  "DistanceFromHome": 1,
-  "Education": 2,
-  "EducationField": "Life Sciences",
-  "EmployeeNumber": 1,
-  "EnvironmentSatisfaction": 2,
-  "Gender": "Female",
-  "HourlyRate": 94,
-  "JobInvolvement": 3,
-  "JobLevel": 2,
-  "JobRole": "Sales Executive",
-  "JobSatisfaction": 4,
-  "MaritalStatus": "Single",
-  "MonthlyIncome": 5993,
-  "MonthlyRate": 19479,
-  "NumCompaniesWorked": 8,
-  "OverTime": "Yes",
-  "PercentSalaryHike": 11,
-  "PerformanceRating": 3,
-  "RelationshipSatisfaction": 1,
-  "StockOptionLevel": 0,
-  "TotalWorkingYears": 8,
-  "TrainingTimesLastYear": 0,
-  "WorkLifeBalance": 1,
-  "YearsAtCompany": 6,
-  "YearsInCurrentRole": 4,
-  "YearsSinceLastPromotion": 0,
-  "YearsWithCurrManager": 5,
-  "event_timestamp": "2026-10-08T10:30:45.123456+00:00"
-}
-```
-
-**Notes:**
-- `EmployeeNumber` is used as the message key (enables partitioning by employee)
-- `event_timestamp` is added by the producer in ISO 8601 format (UTC)
-- Numeric columns are sent as JSON numbers (e.g., `"Age": 41`, not `"Age": "41"`)
-- Text columns are sent as strings
-- Constant columns removed: `EmployeeCount`, `StandardHours`, `Over18`
-
-## Verify Messages in Kafka UI
-
-1. Open Kafka UI at http://localhost:8080
-2. Click on the "local" cluster
-3. Navigate to Topics → employee-data
-4. Click the "Messages" tab
-5. You can view individual messages, filter by key (EmployeeNumber), or export
-
-## Troubleshooting
-
-### NoBrokersAvailable Error
-
-**Problem:** `kafka.errors.NoBrokersAvailable: No available brokers`  
-**Cause:** Kafka broker is not running or not accessible  
-**Solution:**
-- Check Docker: `docker ps` - ensure kafka container is running
-- Check Kafka logs: `docker logs kafka`
-- Verify bootstrap server address in `kafka_pipeline/config.py` (default: `localhost:9092`)
-
-### Port Conflicts
-
-**Problem:** Kafka fails to start due to port 9092 or 9093 already in use  
-**Solution:**
-- Check what's using the port: `netstat -ano | findstr :9092`
-- Stop conflicting service or change ports in `docker-compose.yml`
-
-### Advertised Listeners Issue
-
-**Problem:** Producer cannot connect to Kafka from host machine  
-**Cause:** Kafka's `KAFKA_ADVERTISED_LISTENERS` misconfigured  
-**Solution:**
-- Ensure `docker-compose.yml` has: `PLAINTEXT://localhost:9092`
-- Restart Kafka: `docker compose down && docker compose up -d`
-
-### Docker Not Running
-
-**Problem:** `docker compose up` fails with connection errors  
-**Cause:** Docker Desktop is not running  
-**Solution:**
-- Start Docker Desktop application
-- Wait for it to fully initialize (check Docker icon in system tray)
-- Retry: `docker compose up -d`
-
-### Topic Already Exists
-
-**Problem:** Topic creation fails with "Topic 'employee-data' already exists"  
-**Solution:**
-- This is normal if you already created the topic
-- To delete and recreate (WARNING: deletes all messages):
-  ```powershell
-  docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --delete --topic employee-data --bootstrap-server localhost:9092
-  docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --create --topic employee-data --bootstrap-server localhost:9092 --partitions 3 --replication-factor 1
-  ```
-
-### Consumer Not Receiving Messages
-
-**Problem:** Consumer starts but receives no messages  
-**Cause:** Consumer group offset already at end of topic  
-**Solution:**
-- Use a different GROUP_ID:
-  ```powershell
-  $env:GROUP_ID="new-consumer-group"
-  python kafka_pipeline\consumer.py
-  ```
-- Or reset offsets for existing group:
-  ```powershell
-  docker exec -it kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group hr-consumer-group --reset-offsets --to-earliest --topic employee-data --execute
-  ```
-
-## File Structure
+## Folder structure
 
 ```
-bda_project/
-├── data/
-│   ├── raw/
-│   │   └── WA_Fn-UseC_-HR-Employee-Attrition.csv  (original dataset)
-│   └── processed/
-│       └── employees_clean.csv                    (cleaned dataset)
-├── kafka_pipeline/
-│   ├── config.py                                  (configuration)
-│   ├── producer.py                                (Kafka producer)
-│   └── consumer.py                                (Kafka consumer)
-├── docker-compose.yml                             (Kafka + Kafka UI)
-├── preprocess.py                                  (data cleaning)
-├── verify.py                                      (message count verification)
-├── requirements.txt                               (Python dependencies)
-├── .env.example                                   (environment variable template)
-├── .gitignore                                     (git ignore rules)
-└── README.md                                      (this file)
+data/               Raw and cleaned datasets
+kafka_pipeline/     Producer, consumer and config
+docker-compose.yml  Starts Kafka and Kafka UI
+preprocess.py       Cleans the raw dataset
+verify.py           Checks that all messages arrived
 ```
 
-## Dependencies
+## About
 
-- `pandas==3.0.0` - CSV data handling
-- `kafka-python-ng==2.2.3` - Kafka client library
-- `python-dotenv==1.0.0` - Environment variable support (optional, uses defaults if not present)
-
-## Team Integration
-
-- **Person 1 (me):** Kafka data ingestion (this component)
-- **Person 2:** HDFS storage - implement `flush_batch()` in `kafka_pipeline/consumer.py`
-- **Person 3:** ML model - consumes from HDFS, trains attrition risk model
-- **Person 4:** Streamlit dashboard - displays risk scores for HR review
-
-## How to Continue (for Teammates)
-
-The Kafka ingestion module is **complete and verified** (run `python verify.py` - should print PASS).
-
-### Person 2: HDFS Storage
-- Implement the HDFS write logic inside `flush_batch(records: list[dict])` in `kafka_pipeline/consumer.py`
-- Keep HDFS-specific code in a separate module (e.g., `hdfs/hdfs_utils.py`)
-- The function receives a list of employee records (each is a dict matching the JSON schema)
-- Clear the buffer after successful write
-- Handle write failures gracefully
-- **Do not change:** the function signature `flush_batch(records: list)`
-
-### Person 3: ML Model
-- Train the attrition risk model on `data/processed/employees_clean.csv`
-- Write predictions as a file with columns: `EmployeeNumber`, `risk_score` (0-1), `risk_level` (High/Medium/Low based on threshold >= 0.6)
-- Use the existing message fields from Kafka (via HDFS) for features
-
-### Person 4: Streamlit Dashboard
-- Build a dashboard to read the predictions file
-- Display employee risk scores and flag high-risk employees for HR review
-- Integrate with the ML model output
-
-### Important Constraints
-- **Do not change:** topic name `employee-data`
-- **Do not change:** the message field names or structure
-- **Do not change:** the `flush_batch(records: list)` signature
+Built as a Big Data Analytics course project at Dayananda Sagar College of Engineering, Department of Computer Science and Engineering.
