@@ -8,7 +8,7 @@ services:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,INTERNAL://:29092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092,INTERNAL://kafka:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
@@ -28,3 +28,40 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
     depends_on:
       - kafka
+
+  namenode:
+    image: apache/hadoop:3.3.6
+    container_name: namenode
+    hostname: namenode
+    user: root
+    command: ["bash", "-c", "mkdir -p /opt/hadoop/data/nameNode && if [ ! -d /opt/hadoop/data/nameNode/current ]; then hdfs namenode -format -force -nonInteractive; fi && hdfs namenode"]
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+    volumes:
+      - ./hdfs/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
+      - ./hdfs/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
+      - hadoop_namenode:/opt/hadoop/data/nameNode
+    environment:
+      - HADOOP_HOME=/opt/hadoop
+
+  datanode:
+    image: apache/hadoop:3.3.6
+    container_name: datanode
+    hostname: datanode
+    user: root
+    command: ["bash", "-c", "mkdir -p /opt/hadoop/data/dataNode && hdfs datanode"]
+    ports:
+      - "9864:9864"
+    volumes:
+      - ./hdfs/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
+      - ./hdfs/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
+      - hadoop_datanode:/opt/hadoop/data/dataNode
+    environment:
+      - HADOOP_HOME=/opt/hadoop
+    depends_on:
+      - namenode
+
+volumes:
+  hadoop_namenode:
+  hadoop_datanode:

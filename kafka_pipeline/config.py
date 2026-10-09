@@ -16,7 +16,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # Kafka connection settings
 # Environment variables: BOOTSTRAP_SERVERS, TOPIC, GROUP_ID
-BOOTSTRAP_SERVERS = os.getenv("BOOTSTRAP_SERVERS", "localhost:9092")
+BOOTSTRAP_SERVERS = os.getenv("BOOTSTRAP_SERVERS", "127.0.0.1:9092")
 TOPIC = os.getenv("TOPIC", "employee-data")
 GROUP_ID = os.getenv("GROUP_ID", "hr-consumer-group")
 

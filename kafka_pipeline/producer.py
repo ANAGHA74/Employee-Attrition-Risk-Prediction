@@ -47,6 +47,9 @@ def serialize_record(record: dict) -> dict:
     
     # Add event timestamp in ISO 8601 format
     serialized['event_timestamp'] = datetime.now(timezone.utc).isoformat()
+    # Provenance metadata to distinguish production records from test payloads
+    serialized['record_type'] = 'production_employee'
+    serialized['source_dataset'] = 'employees_clean.csv'
     
     return serialized
 
