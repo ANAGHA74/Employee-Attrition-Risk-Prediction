@@ -1,8 +1,10 @@
 import joblib
 import pandas as pd
+from pathlib import Path
 
 
-MODEL_PATH = "ml/models/attrition_model.pkl"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+MODEL_PATH = PROJECT_ROOT / "ml" / "models" / "attrition_model.pkl"
 
 RISK_THRESHOLD = 0.60
 
@@ -103,7 +105,7 @@ if __name__ == "__main__":
     print("EMPLOYEE ATTRITION RISK PREDICTION")
     print("=" * 70)
 
-    input_path = "data/processed/employees_clean.csv"
+    input_path = PROJECT_ROOT / "data" / "processed" / "employees_clean.csv"
 
     model = load_model()
 
@@ -145,10 +147,7 @@ if __name__ == "__main__":
         )
     )
 
-    output_path = (
-        "ml/results/"
-        "employee_risk_predictions.csv"
-    )
+    output_path = PROJECT_ROOT / "ml" / "results" / "employee_risk_predictions.csv"
 
     results.to_csv(
         output_path,

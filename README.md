@@ -66,12 +66,15 @@ HR teams typically discover an employee is leaving only when a resignation lette
 ### Step 1: Clone & Setup Virtual Environment
 ```powershell
 git clone https://github.com/ANAGHA74/Employee-Attrition-Risk-Prediction.git
-cd bdaproject
+cd Employee-Attrition-Risk-Prediction
 
-python -m venv venv
-.\venv\Scripts\activate
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+Copy-Item .env.example .env
 ```
+
+The `.env` file contains the Kafka connection, topic, consumer group, and local dashboard authentication settings. Keep it out of version control when using non-demo credentials.
 
 ### Step 2: Start Docker Services (Kafka, Kafka UI, HDFS NameNode, DataNode)
 ```powershell
@@ -117,15 +120,23 @@ streamlit run dashboard/app.py
 ```
 Open `http://localhost:8501` in your web browser.
 
+The dashboard requires the credentials configured in `.env`. For the included demo configuration, sign in with `hr@company.com` and the demo password documented in `.env.example`. Dashboard data is loaded from `data/processed/hdfs_exported_employees.csv` when available, with `employees_clean.csv` as a local fallback.
+
 ---
 
 ## 6. Verification and Automated Testing
 
-Run the end-to-end 8-step test suite:
+Run the HDFS integration tests after Kafka and HDFS are running:
 ```powershell
 python hdfs/test_hdfs.py
 ```
-*Verifies: HDFS Health, Directory Creation, HDFS Write/Read, Kafka Ingestion, Record Persistence, Consumer Restart, ML Model Compatibility, and DLQ Spool/Replay.*
+*The suite covers HDFS health and directories, HDFS write/read behavior, Kafka ingestion, record persistence, consumer restart behavior, ML model compatibility, and DLQ spool/replay.*
+
+Run the dashboard checks and local data verification separately:
+```powershell
+python -m pytest tests/test_dashboard_redesign.py
+python verify.py
+```
 
 ---
 
@@ -142,7 +153,7 @@ python hdfs/test_hdfs.py
 ## 8. Repository Structure
 
 ```
-bdaproject/
+Employee-Attrition-Risk-Prediction/
 ├── dashboard/
 │   └── app.py                      # Streamlit HR Analytics & Risk Dashboard
 ├── data/
@@ -157,7 +168,7 @@ bdaproject/
 │   ├── hdfs_utils.py               # WebHDFS REST client & DLQ utilities
 │   ├── kafka_hdfs_consumer.py      # Official Kafka-to-HDFS consumer
 │   ├── export_hdfs_data.py         # Batch export & ML inference bridge
-│   ├── test_hdfs.py                # Automated 8-step test suite
+│   ├── test_hdfs.py                # HDFS and Kafka integration tests
 │   └── requirements.txt            # HDFS-specific dependencies
 ├── kafka_pipeline/                 # Person 1: Kafka Streaming Ingestion
 │   ├── config.py                   # Broker & topic settings
