@@ -127,54 +127,6 @@ def render_key_drivers_page(meta: Dict[str, Any]):
 
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-    # Informational Interpretation Cards matching bottom of Panel 5
-    c_info1, c_info2 = st.columns([1.4, 1.0], gap="large")
-
-    with c_info1:
-        with st.container(border=True):
-            st.markdown(
-                textwrap.dedent("""
-                <div class="key-driver-info-card">
-                <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
-                    <span style="color: #2563EB;">💡</span>
-                    <span>How to interpret these factors?</span>
-                </div>
-                <div style="font-size: 0.85rem; color: #334155; line-height: 1.6; margin-top: 6px;">
-                    <div>• <strong>Positive values</strong> indicate features associated with higher predicted attrition risk.</div>
-                    <div>• <strong>Negative values</strong> indicate features associated with lower predicted attrition risk.</div>
-                    <div>• These are <strong>model-level associations</strong>, not proof of individual causality.</div>
-                    <div>• Use these insights to guide holistic HR retention programs and one-on-one dialogues.</div>
-                </div>
-                <div style="margin-top: 8px; font-size: 0.76rem; color: #64748B; font-style: italic;">
-                    The model is a predictive decision-support system and may not capture qualitative factors influencing an individual's decision.
-                </div>
-                </div>
-                """),
-                unsafe_allow_html=True
-            )
-
-    with c_info2:
-        with st.container(border=True):
-            st.markdown(
-                textwrap.dedent(f"""
-                <div class="key-driver-info-card">
-                <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
-                    <span style="color: #2563EB;">ℹ️</span>
-                    <span>Model Information</span>
-                </div>
-                <div style="font-size: 0.83rem; color: #334155; line-height: 1.55; margin-top: 6px;">
-                    <div><strong>Algorithm:</strong> Scikit-learn (Logistic Regression Pipeline)</div>
-                    <div><strong>HR Review Threshold:</strong> <code>Probability >= {meta.get('threshold', 0.60):.2f}</code></div>
-                    <div><strong>Pre-processing:</strong> Standard scaling for numerical, One-Hot encoding for categorical</div>
-                    <div style="margin-top: 6px; font-size: 0.76rem; color: #64748B;">
-                        <strong>Key Features:</strong> OverTime, Business Travel, Job Role, Monthly Income, Satisfaction, Distance from Home, Tenure.
-                    </div>
-                </div>
-                </div>
-                """),
-                unsafe_allow_html=True
-            )
-
     # Full Feature Coefficients Table Expander
     with st.expander("🔍 View Complete Feature Coefficients Table"):
         display_coeffs = coeff_df[["ReadableFeature", "Coefficient", "AbsoluteCoefficient"]].sort_values(

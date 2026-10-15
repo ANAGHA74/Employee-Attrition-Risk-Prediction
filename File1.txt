@@ -1,0 +1,5 @@
+Student Name: Rahul
+USN: 1DS22CS001
+Department: CSE
+Semester: 7
+College: DSCE

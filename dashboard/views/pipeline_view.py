@@ -120,71 +120,40 @@ def render_pipeline_page(display_df: pd.DataFrame, meta: Dict[str, Any]):
 
     st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
-    # Sync Controls and File Details
-    col_sync, col_details = st.columns([1.1, 1.3], gap="large")
+    # Sync Controls
+    with st.container(border=True):
+        st.markdown(
+            textwrap.dedent("""
+            <div class="card-title">HDFS Synchronization Controls</div>
+            <div class="card-subtitle">Export persisted streaming batches and regenerate inference probabilities</div>
+            """),
+            unsafe_allow_html=True
+        )
 
-    with col_sync:
-        with st.container(border=True):
-            st.markdown(
-                textwrap.dedent("""
-                <div class="card-title">HDFS Synchronization Controls</div>
-                <div class="card-subtitle">Export persisted streaming batches and regenerate inference probabilities</div>
-                """),
-                unsafe_allow_html=True
-            )
+        st.caption(f"Last HDFS Export: **{get_file_last_modified(EXPORT_FILE)}**")
+        st.caption(f"Last ML Predictions: **{get_file_last_modified(PREDICTION_FILE)}**")
 
-            st.caption(f"Last HDFS Export: **{get_file_last_modified(EXPORT_FILE)}**")
-            st.caption(f"Last ML Predictions: **{get_file_last_modified(PREDICTION_FILE)}**")
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-
-            if st.button("🔄 Sync & Export from HDFS", key="hdfs_sync_action_btn", type="primary", use_container_width=True):
-                if not hdfs_connected:
-                    st.error("❌ Cannot sync: Hadoop HDFS is currently disconnected. Please verify that your Docker HDFS container is running (`docker compose up -d`).")
-                else:
-                    with st.spinner("Extracting batches from HDFS, sanitizing payloads, and running ML inference..."):
-                        try:
-                            prod_df, test_df = export_hdfs_data(deduplicate=True)
-                            if prod_df.empty:
-                                st.warning("⚠️ Export completed, but zero production employee records were found in HDFS.")
+        if st.button("🔄 Sync & Export from HDFS", key="hdfs_sync_action_btn", type="primary", use_container_width=True):
+            if not hdfs_connected:
+                st.error("❌ Cannot sync: Hadoop HDFS is currently disconnected. Please verify that your Docker HDFS container is running (`docker compose up -d`).")
+            else:
+                with st.spinner("Extracting batches from HDFS, sanitizing payloads, and running ML inference..."):
+                    try:
+                        prod_df, test_df = export_hdfs_data(deduplicate=True)
+                        if prod_df.empty:
+                            st.warning("⚠️ Export completed, but zero production employee records were found in HDFS.")
+                        else:
+                            predictions = run_ml_prediction_on_hdfs_data(prod_df)
+                            if predictions.empty:
+                                st.error("❌ Prediction generation returned empty results.")
                             else:
-                                predictions = run_ml_prediction_on_hdfs_data(prod_df)
-                                if predictions.empty:
-                                    st.error("❌ Prediction generation returned empty results.")
-                                else:
-                                    st.cache_data.clear()
-                                    st.success(f"✅ Successfully synchronized and scored {len(predictions):,} records from HDFS!")
-                                    st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Synchronization pipeline error: {e}")
-
-    with col_details:
-        with st.container(border=True):
-            st.markdown(
-                textwrap.dedent("""
-                <div class="card-title">Distributed Pipeline Architecture</div>
-                <div class="card-subtitle">End-to-end data lifecycle from stream to model</div>
-                """),
-                unsafe_allow_html=True
-            )
-
-            arch_html = textwrap.dedent("""
-            <div class="pipeline-architecture-content" style="font-size: 0.84rem; color: #334155; line-height: 1.55;">
-                <div style="margin-bottom: 8px;">
-                    <strong>1. Ingestion:</strong> Kafka Producer streams IBM HR employee payloads to topic <code>employee-data</code> (Port 9092).
-                </div>
-                <div style="margin-bottom: 8px;">
-                    <strong>2. Distributed Storage:</strong> Kafka-to-HDFS Consumer buffers records into batches of 50 and persists them to <code>/user/hr_attrition/raw/batch_*.jsonl</code> on HDFS NameNode.
-                </div>
-                <div style="margin-bottom: 8px;">
-                    <strong>3. Sanitization & Scoring:</strong> <code>export_hdfs_data.py</code> isolates synthetic payloads, deduplicates production records, and scores them using the trained Scikit-learn Logistic Regression Pipeline.
-                </div>
-                <div>
-                    <strong>4. Dashboard Visualization:</strong> Decision support interface displays interactive KPIs, high-risk shortlists, and key driver explanations.
-                </div>
-            </div>
-            """)
-            st.markdown(arch_html, unsafe_allow_html=True)
+                                st.cache_data.clear()
+                                st.success(f"✅ Successfully synchronized and scored {len(predictions):,} records from HDFS!")
+                                st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Synchronization pipeline error: {e}")
 
     # Detailed HDFS File List if connected
     if hdfs_connected and raw_files:

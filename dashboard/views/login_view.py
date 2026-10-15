@@ -55,6 +55,7 @@ def render_login_page():
         .stApp {
             background-color: #EDF2F8 !important;
             font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            font-size: 15px !important;
         }
         .stApp > div {
             min-height: 100vh !important;
@@ -455,14 +456,12 @@ def render_login_page():
             # Email or Username Input (Full width, embedded mail icon)
             email_input = st.text_input(
                 "Email or Username",
-                value="hr@company.com",
                 placeholder="hr@company.com"
             )
 
             # Password Input (Full width, embedded lock icon, native eye show/hide control on right)
             password_input = st.text_input(
                 "Password",
-                value="hr123",
                 type="password",
                 placeholder="••••••••"
             )
@@ -487,23 +486,6 @@ def render_login_page():
                 type="primary",
                 use_container_width=True
             )
-
-            # Demo Credentials Info Panel (Note: social buttons removed per instruction)
-            demo_credentials_html = clean_html("""
-            <div style="background: #F0F8FF; border: 1px solid #BAE6FD; border-radius: 10px; padding: 12px 14px; margin-top: 16px;">
-                <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 5px;">
-                    <div style="width: 16px; height: 16px; border-radius: 50%; background: #0284C7; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0;">i</div>
-                    <span style="font-size: 0.84rem; font-weight: 700; color: #0369A1;">
-                        Demo Credentials (for project use)
-                    </span>
-                </div>
-                <div style="font-size: 0.80rem; color: #334155; line-height: 1.5; padding-left: 23px;">
-                    <div><strong>Email:</strong> <span style="color: #059669; font-weight: 600;">hr@company.com</span></div>
-                    <div><strong>Password:</strong> <span style="color: #059669; font-weight: 600;">hr123</span></div>
-                </div>
-            </div>
-            """)
-            st.markdown(demo_credentials_html, unsafe_allow_html=True)
 
         # Handle form submission and server-side verification
         if submit_btn:

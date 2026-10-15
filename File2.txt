@@ -1,0 +1,5 @@
+Student Name: Rahul Kumar
+USN: 1DS22CS001
+Department: Computer Science
+Semester: 7
+College: DSCE Bangalore

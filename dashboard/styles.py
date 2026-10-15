@@ -15,6 +15,7 @@ def get_global_css() -> str:
     html, body, [class*="css"] {
         font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         color: #0F172A;
+        font-size: 15px !important;
     }
     html, body, .stApp, [data-testid="stAppViewContainer"] {
         height: 100vh !important;
